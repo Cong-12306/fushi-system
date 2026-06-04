@@ -60,15 +60,20 @@ tbody tr:hover td{background:#fafbff}
 tbody tr:hover .nc{background:#fafbff}
 .ridx{font-size:11px;color:#cbd5e1;width:28px;text-align:center;flex-shrink:0}
 /* 文件按钮 */
-.fb{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:6px;border:1px solid;font-size:11.5px;cursor:pointer;transition:.12s;white-space:nowrap;max-width:140px}
+.fb{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;border:1.5px solid;font-size:12px;cursor:pointer;transition:.12s;white-space:nowrap;max-width:148px;font-weight:500}
 .fb span.fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.fb-ok{background:#f0fdf4;border-color:#86efac;color:#15803d}
-.fb-ok:hover{background:#dcfce7}
-.fb-none{background:#fafafa;border-color:#e5e7eb;color:#9ca3af;border-style:dashed}
-.fb-none:hover{background:#eff6ff;border-color:#93c5fd;color:#1a56db;border-style:solid}
+/* 找到文件：三种类型各自颜色 */
+.fb-resume{background:#eff6ff;border-color:#93c5fd;color:#1e40af}
+.fb-resume:hover{background:#dbeafe;border-color:#60a5fa}
+.fb-ai{background:#faf5ff;border-color:#c4b5fd;color:#5b21b6}
+.fb-ai:hover{background:#ede9fe;border-color:#a78bfa}
+.fb-pt{background:#f0fdf4;border-color:#86efac;color:#15803d}
+.fb-pt:hover{background:#dcfce7;border-color:#4ade80}
+/* 未找到文件 */
+.fb-none{background:#fafafa;border-color:#e5e7eb;color:#9ca3af;border-style:dashed;font-weight:400}
+.fb-none:hover{background:#fef9c3;border-color:#fbbf24;color:#92400e;border-style:solid}
 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.dot-ok{background:#22c55e}
-.dot-none{background:#d1d5db}
+.dot-ok{background:#22c55e}.dot-none{background:#d1d5db}
 /* 价值观标签：统一样式，颜色由 JS 内联设置 */
 .vtag{padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;border-width:1px;border-style:solid}
 .tm{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:2px 5px;border-radius:3px;border:none}
@@ -274,22 +279,22 @@ function pickFolder() {
     alert('需要 Chrome 86+ 或 Edge。\n当前浏览器不支持文件夹访问。');
     return;
   }
-  // 提示选择日期文件夹，如 复试文件/20260605
   window.showDirectoryPicker({mode:'read'}).then(function(dh) {
     dirHandle = dh;
     allFiles  = {};
     blobUrls  = {};
+    // 选新文件夹时清空旧映射，全量重新匹配
+    fileMap   = {};
+    localStorage.removeItem('fm');
     return scanDir(dh);
   }).then(function() {
     var cnt = Object.keys(allFiles).length;
     document.getElementById('dirBtn').classList.add('ok');
     document.getElementById('dirTxt').textContent = '✓ ' + dirHandle.name;
-    document.getElementById('fileCount').textContent = cnt + ' 个文件';
-    // 清除旧映射再重新匹配（切换场次时用新文件夹的文件）
-    fileMap = JSON.parse(localStorage.getItem('fm') || '{}');
     autoMatch();
     if (curSession) buildDetail(curSession);
-    toast('已扫描 ' + cnt + ' 个文件，请查看匹配情况');
+    var matched = Object.keys(fileMap).length;
+    toast('已扫描 ' + cnt + ' 个文件，成功匹配 ' + matched + ' 项');
   }).catch(function(e) {
     if (e.name !== 'AbortError') toast('选择失败：' + e.message);
   });
@@ -505,23 +510,28 @@ function buildTable(cands) {
   return h + '</tbody></table>';
 }
 
-// 文件按钮（纯字符串，无 emoji onclick）
+// 文件按钮（三种类型各自颜色）
 function fbtn(label, mapKey, filename) {
-  var icons = {简历:'[简历]', 初试报告:'[AI]', 性格报告:'[性格]'};
-  var ico = icons[label] || '[文件]';
+  var cfg = {
+    '简历':    {cls:'fb-resume', ico:'\u{1F4C4}'},
+    '初试报告': {cls:'fb-ai',     ico:'\u{1F916}'},
+    '性格报告': {cls:'fb-pt',     ico:'\u{1F9E0}'}
+  };
+  var c = cfg[label] || {cls:'fb-resume', ico:'\u{1F4CE}'};
 
   if (!dirHandle && !filename) {
-    return '<span class="fb fb-none" data-act="folder" title="请先选择文件夹">' +
+    return '<span class="fb fb-none" data-act="folder" title="点击选择文件夹">' +
            '<span class="dot dot-none"></span><span class="fn">选择文件夹</span></span>';
   }
   if (filename) {
-    var safe = filename.replace(/"/g,'&quot;');
-    var short = filename.length > 15 ? filename.slice(0,14)+'…' : filename;
-    return '<span class="fb fb-ok" data-act="open" data-mk="'+mapKey+'" data-fn="'+safe+'" data-lbl="'+label+'" title="点击预览：'+safe+'">' +
-           '<span class="dot dot-ok"></span><span class="fn">'+short+'</span></span>';
+    var safe  = filename.replace(/"/g,'&quot;');
+    var name  = filename.replace(/_简历|_AI面试报告|_性格测试/g,'').replace(/\.pdf$/i,'');
+    var short = name.length > 6 ? name.slice(0,6) : name;
+    return '<span class="fb ' + c.cls + '" data-act="open" data-mk="'+mapKey+'" data-fn="'+safe+'" data-lbl="'+label+'" title="点击预览：'+filename+'">' +
+           '<span class="dot dot-ok"></span><span class="fn">' + short + '</span></span>';
   }
-  return '<span class="fb fb-none" data-act="pick" data-mk="'+mapKey+'" data-lbl="'+label+'" title="点击选择文件">' +
-         '<span class="dot dot-none"></span><span class="fn">点击选择文件</span></span>';
+  return '<span class="fb fb-none" data-act="pick" data-mk="'+mapKey+'" data-lbl="'+label+'" title="点击手动选择">' +
+         '<span class="dot dot-none"></span><span class="fn">点击选择</span></span>';
 }
 
 // ════════════════════════════════
