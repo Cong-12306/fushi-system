@@ -125,7 +125,7 @@ tbody tr:hover .nc{background:#fafbff}
   <div class="sp"></div>
   <span class="fc" id="fileCount"></span>
   <button class="btn-sm" id="syncBtn" onclick="triggerSync()" title="从飞书同步最新数据">🔄 同步数据</button>
-  <button class="btn-sm" id="dirBtn" onclick="pickFolder()">📁 <span id="dirTxt">选择文件夹</span></button>
+  <button class="btn-sm" id="dirBtn" onclick="pickFolder()" title="选择「复试文件/日期」文件夹，如：复试文件/20260605">📁 <span id="dirTxt">选择文件夹（如 20260605）</span></button>
 </div>
 
 <!-- 首页 -->
@@ -273,6 +273,7 @@ function pickFolder() {
     alert('需要 Chrome 86+ 或 Edge。\n当前浏览器不支持文件夹访问。');
     return;
   }
+  // 提示选择日期文件夹，如 复试文件/20260605
   window.showDirectoryPicker({mode:'read'}).then(function(dh) {
     dirHandle = dh;
     allFiles  = {};
@@ -283,9 +284,11 @@ function pickFolder() {
     document.getElementById('dirBtn').classList.add('ok');
     document.getElementById('dirTxt').textContent = '✓ ' + dirHandle.name;
     document.getElementById('fileCount').textContent = cnt + ' 个文件';
+    // 清除旧映射再重新匹配（切换场次时用新文件夹的文件）
+    fileMap = JSON.parse(localStorage.getItem('fm') || '{}');
     autoMatch();
     if (curSession) buildDetail(curSession);
-    toast('已扫描 ' + cnt + ' 个文件');
+    toast('已扫描 ' + cnt + ' 个文件，请查看匹配情况');
   }).catch(function(e) {
     if (e.name !== 'AbortError') toast('选择失败：' + e.message);
   });
@@ -311,39 +314,52 @@ function autoMatch() {
   var lowerM = {};
   names.forEach(function(n){ lowerM[n.toLowerCase()] = n; });
 
+  var matched = 0;
   SESSIONS.forEach(function(s) {
     s.candidates.forEach(function(c) {
-      // 性格测试（精确 + 大小写不敏感）
-      if (!fileMap[c.name+'_p']) {
-        if (allFiles[c.pName]) {
-          fileMap[c.name+'_p'] = c.pName;
-        } else if (lowerM[c.pName.toLowerCase()]) {
-          fileMap[c.name+'_p'] = lowerM[c.pName.toLowerCase()];
-        }
-      }
-      // 简历（含姓名关键词）
-      if (!fileMap[c.name+'_r']) {
-        var m = names.find(function(n){
-          return n.includes(c.name) && (n.includes('简历')||n.toLowerCase().includes('resume')||n.toLowerCase().includes('cv'));
-        }) || names.find(function(n){
-          return n.includes(c.name) && n.toLowerCase().endsWith('.pdf');
-        });
-        if (m) fileMap[c.name+'_r'] = m;
-      }
-      // AI报告（含姓名 + AI/面试关键词）
-      if (!fileMap[c.name+'_ai']) {
-        var m2 = names.find(function(n){
-          return n.includes(c.name) && (n.includes('AI')||n.includes('面试')||n.toLowerCase().includes('interview'));
-        });
-        if (m2) fileMap[c.name+'_ai'] = m2;
-      }
+      var nm = c.name;
+
+      // ── 简历：优先 姓名_简历.pdf（新命名），其次模糊匹配 ──
+      if (!fileMap[nm+'_r']) {
+        var std = nm + '_简历.pdf';
+        var m = allFiles[std] ? std
+              : lowerM[std.toLowerCase()]
+              || names.find(function(n){
+                   return n.includes(nm) && (n.includes('简历')||n.toLowerCase().includes('resume')||n.toLowerCase().includes('cv'));
+                 })
+              || names.find(function(n){
+                   return n.includes(nm) && n.toLowerCase().endsWith('.pdf') && !n.includes('AI') && !n.includes('面试') && !n.includes('性格');
+                 });
+        if (m) { fileMap[nm+'_r'] = m; matched++; }
+      } else { matched++; }
+
+      // ── AI面试报告：优先 姓名_AI面试报告.pdf ──
+      if (!fileMap[nm+'_ai']) {
+        var stdAi = nm + '_AI面试报告.pdf';
+        var m2 = allFiles[stdAi] ? stdAi
+               : lowerM[stdAi.toLowerCase()]
+               || names.find(function(n){
+                    return n.includes(nm) && (n.includes('AI')||n.includes('面试')||n.toLowerCase().includes('interview'));
+                  });
+        if (m2) { fileMap[nm+'_ai'] = m2; matched++; }
+      } else { matched++; }
+
+      // ── 性格测试：优先 姓名_性格测试.pdf，其次 c.pName ──
+      if (!fileMap[nm+'_p']) {
+        var stdP = nm + '_性格测试.pdf';
+        var m3 = allFiles[stdP] ? stdP
+               : lowerM[stdP.toLowerCase()]
+               || (allFiles[c.pName] ? c.pName : null)
+               || lowerM[c.pName.toLowerCase()];
+        if (m3) { fileMap[nm+'_p'] = m3; matched++; }
+      } else { matched++; }
     });
   });
 
   localStorage.setItem('fm', JSON.stringify(fileMap));
-  var found = Object.keys(fileMap).length;
+  var total = SESSIONS.reduce(function(a,s){ return a + s.candidates.length * 3; }, 0);
   document.getElementById('fileCount').textContent =
-    Object.keys(allFiles).length + ' 个文件 · 已匹配 ' + found + ' 项';
+    names.length + ' 个文件 · 匹配 ' + matched + '/' + total + ' 项';
 }
 
 // ════════════════════════════════
@@ -417,20 +433,23 @@ function buildDetail(s) {
     if (v) { el.value = v; colorSel(el); }
   });
 
-  // 动态计算 thead 的 top，= 顶栏高度 + dhd 高度 + dhd margin-bottom(12px)
-  fixStickyHeader();
+  // 用 requestAnimationFrame 确保 DOM 渲染完成后再测量高度，避免遮住第一行
+  requestAnimationFrame(function() {
+    requestAnimationFrame(fixStickyHeader);
+  });
 }
 
 function fixStickyHeader() {
   var bar = document.querySelector('.bar');
   var dhd = document.getElementById('dhd');
   if (!bar || !dhd) return;
-  var top = bar.getBoundingClientRect().height + dhd.getBoundingClientRect().height + 12;
+  // bar 高度 + dhd 高度 + dhd margin-bottom(12px) + 安全边距(4px)
+  var top = bar.getBoundingClientRect().height + dhd.getBoundingClientRect().height + 16;
   document.querySelectorAll('thead th').forEach(function(th) {
     th.style.top = top + 'px';
   });
 }
-window.addEventListener('resize', fixStickyHeader);
+window.addEventListener('resize', function(){ requestAnimationFrame(fixStickyHeader); });
 
 // ════════════════════════════════
 // 表格
