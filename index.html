@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>复试系统 · 2026春管培生</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f0f4f8;color:#1e293b;font-size:13px;min-height:100vh}
+/* 顶栏 */
+.bar{background:#fff;border-bottom:1px solid #e2e8f0;height:50px;padding:0 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.logo{font-size:15px;font-weight:700}
+.logo b{color:#1a56db}
+.badge{background:#eff6ff;color:#1a56db;font-size:11px;font-weight:700;padding:3px 11px;border-radius:20px}
+.sp{flex:1}
+.btn-sm{display:flex;align-items:center;gap:6px;border:1.5px dashed #e2e8f0;border-radius:8px;padding:6px 14px;font-size:12px;color:#64748b;cursor:pointer;background:#fafafa;transition:.15s;white-space:nowrap}
+.btn-sm:hover{border-color:#1a56db;color:#1a56db;background:#eff6ff;border-style:solid}
+.btn-sm.ok{border-style:solid;border-color:#22c55e;color:#15803d;background:#f0fdf4}
+.fc{font-size:11px;color:#94a3b8;margin-right:4px}
+/* 视图 */
+.view{display:none;padding:20px 20px 60px;max-width:1280px;margin:0 auto}
+.view.on{display:block}
+/* 首页 */
+.pg-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.pg-sub{font-size:13px;color:#64748b;margin-bottom:20px}
+.day-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid #e2e8f0}
+.day-tag{background:#1e293b;color:#fff;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px}
+.day-lbl{font-size:14px;font-weight:700;color:#334155}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-bottom:28px}
+.card{background:#fff;border-radius:12px;border:2px solid #e2e8f0;overflow:hidden;cursor:pointer;transition:.15s;position:relative}
+.card:hover{border-color:#1a56db;box-shadow:0 6px 20px rgba(26,86,219,.14);transform:translateY(-2px)}
+.card-top{height:4px;background:linear-gradient(90deg,#1a56db,#60a5fa)}
+.card-body{padding:16px 18px}
+.card-num{font-size:11px;font-weight:700;color:#1a56db;background:#eff6ff;padding:2px 9px;border-radius:12px;display:inline-block;margin-bottom:8px}
+.card-time{font-size:20px;font-weight:800;margin-bottom:4px}
+.card-meta{font-size:12px;color:#64748b;line-height:1.9}
+.card-avs{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.ava{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1a56db,#60a5fa);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.card-arr{position:absolute;right:16px;bottom:16px;font-size:20px;color:#cbd5e1;transition:.15s}
+.card:hover .card-arr{color:#1a56db}
+/* 详情 */
+/* dhd 固定在顶栏下方，避免表头遮住第一行 */
+.dhd{background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:12px;position:sticky;top:50px;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.back-btn{background:#f1f5f9;border:none;border-radius:7px;padding:7px 14px;font-size:13px;color:#475569;cursor:pointer;font-weight:500}
+.back-btn:hover{background:#e2e8f0}
+.di{flex:1}
+.di-title{font-size:15px;font-weight:700}
+.di-sub{font-size:12px;color:#64748b;margin-top:2px}
+.di-cnt{background:#eff6ff;color:#1a56db;font-size:12px;font-weight:700;padding:3px 10px;border-radius:16px;margin-left:auto}
+/* 表格 */
+.tw{overflow-x:auto;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,.08)}
+table{width:max-content;min-width:100%;border-collapse:collapse;background:#fff}
+/* thead top 由 JS 动态计算（fixStickyHeader）*/
+thead th{background:#f8fafc;font-size:11px;font-weight:700;color:#64748b;padding:8px 12px;border-bottom:2px solid #e2e8f0;border-right:1px solid #f1f5f9;white-space:nowrap;text-align:left;position:sticky;top:105px;z-index:10}
+thead th:nth-child(2){position:sticky;left:0;z-index:20;background:#f8fafc;border-right:2px solid #e2e8f0}
+tbody td{padding:0;border-bottom:1px solid #f1f5f9;border-right:1px solid #f8fafc;vertical-align:middle}
+tbody tr:hover td{background:#fafbff}
+.cell{padding:7px 12px;min-height:40px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.nc{position:sticky;left:0;background:#fff;z-index:5;border-right:2px solid #e2e8f0!important;font-weight:700;font-size:13px;white-space:nowrap}
+tbody tr:hover .nc{background:#fafbff}
+.ridx{font-size:11px;color:#cbd5e1;width:28px;text-align:center;flex-shrink:0}
+/* 文件按钮 */
+.fb{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:6px;border:1px solid;font-size:11.5px;cursor:pointer;transition:.12s;white-space:nowrap;max-width:140px}
+.fb span.fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.fb-ok{background:#f0fdf4;border-color:#86efac;color:#15803d}
+.fb-ok:hover{background:#dcfce7}
+.fb-none{background:#fafafa;border-color:#e5e7eb;color:#9ca3af;border-style:dashed}
+.fb-none:hover{background:#eff6ff;border-color:#93c5fd;color:#1a56db;border-style:solid}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:#22c55e}
+.dot-none{background:#d1d5db}
+/* 价值观标签：统一样式，颜色由 JS 内联设置 */
+.vtag{padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;border-width:1px;border-style:solid}
+.tm{font-size:10px;color:#94a3b8;background:#f1f5f9;padding:2px 5px;border-radius:3px;border:none}
+/* select / editable */
+.rs{border:none;outline:none;background:transparent;width:100%;font-size:12px;color:#64748b;cursor:pointer;padding:7px 12px}
+.rs.pass{color:#15803d;font-weight:700}
+.rs.fail{color:#991b1b;font-weight:700}
+.rs.hold{color:#92400e;font-weight:700}
+.rs.give{color:#6b7280}
+.ec{outline:none;padding:7px 12px;min-height:40px;font-size:12px;color:#475569;white-space:pre-wrap;word-break:break-all;line-height:1.5;width:100%;display:block}
+.ec:focus{background:#fffbeb;box-shadow:inset 0 0 0 1.5px #fbbf24}
+.ec:empty::before{content:attr(data-ph);color:#d1d5db}
+/* 弹窗 */
+.ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:900;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.ov.on{display:flex}
+.modal{background:#fff;border-radius:14px;width:93vw;max-width:1020px;height:90vh;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.4);overflow:hidden;animation:pop .18s ease}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.mbar{background:#1e293b;padding:12px 16px;display:flex;align-items:center;gap:10px;color:#fff;flex-shrink:0}
+.mbar .mi{font-size:18px}
+.mbar .mn{flex:1;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mbar .mt{font-size:11px;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:10px}
+.mbar .mc{width:28px;height:28px;border-radius:6px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mbar .mc:hover{background:rgba(255,255,255,.2)}
+.mbody{flex:1;overflow:hidden;background:#525659}
+.mbody iframe{width:100%;height:100%;border:none}
+.mbody img{width:100%;height:100%;object-fit:contain;background:#1e293b;display:block}
+.nofile{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#f8fafc;gap:10px;padding:28px;text-align:center}
+.nofile .nfi{font-size:48px}
+.nofile h3{font-size:16px;color:#334155}
+.nofile p{font-size:13px;color:#64748b;max-width:340px;line-height:1.7}
+.nofile .hint{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#78350f;text-align:left;line-height:1.8;max-width:360px}
+.nofile .pick2{background:#1a56db;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer;margin-top:4px}
+.nofile .pick2:hover{background:#1648b8}
+/* 文件列表弹窗 */
+.fl-modal{background:#fff;border-radius:12px;width:480px;max-height:68vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;animation:pop .18s ease}
+.fl-hd{padding:14px 16px;border-bottom:1px solid #e2e8f0;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.fl-hd .fc2{flex:1}
+.fl-bd{overflow-y:auto;padding:10px}
+.fl-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;border:1px solid #e2e8f0;margin-bottom:5px;transition:.12s}
+.fl-item:hover{background:#eff6ff;border-color:#93c5fd}
+.fl-ico{font-size:18px;flex-shrink:0}
+.fl-name{flex:1;font-size:12px;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-empty{text-align:center;padding:28px;color:#94a3b8;font-size:13px}
+/* toast */
+#toast{position:fixed;bottom:22px;right:22px;background:#1e293b;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;z-index:9999;display:none;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div class="bar">
+  <div class="logo"><b>核桃编程</b> 复试系统</div>
+  <div class="sep" style="width:1px;height:18px;background:#e2e8f0"></div>
+  <div class="badge">2026春 · 管理培训生</div>
+  <div class="sp"></div>
+  <span class="fc" id="fileCount"></span>
+  <button class="btn-sm" id="syncBtn" onclick="triggerSync()" title="从飞书同步最新数据">🔄 同步数据</button>
+  <button class="btn-sm" id="dirBtn" onclick="pickFolder()">📁 <span id="dirTxt">选择文件夹</span></button>
+</div>
+
+<!-- 首页 -->
+<div class="view on" id="v0">
+  <div class="pg-title">📋 复试排期总览</div>
+  <div class="pg-sub" id="pgSub">点击场次卡片查看候选人 · 点「选择文件夹」后可预览简历/报告</div>
+  <div id="homeEl"></div>
+</div>
+
+<!-- 详情页 -->
+<div class="view" id="v1">
+  <div class="dhd" id="dhd"></div>
+  <div class="tw" id="tbl"></div>
+</div>
+
+<!-- PDF 弹窗 -->
+<div class="ov" id="ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mbar">
+      <span class="mi" id="mi"></span>
+      <span class="mn" id="mn"></span>
+      <span class="mt" id="mt"></span>
+      <button class="mc" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody" id="mb"></div>
+  </div>
+</div>
+
+<!-- 文件选择弹窗 -->
+<div class="ov" id="flov" onclick="if(event.target===this)closeFl()">
+  <div class="fl-modal" onclick="event.stopPropagation()">
+    <div class="fl-hd">
+      <span>📂</span>
+      <span class="fc2" id="flTitle">选择文件</span>
+      <button class="mc" style="background:#e2e8f0;color:#475569" onclick="closeFl()">✕</button>
+    </div>
+    <div class="fl-bd" id="flBody"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════
+// 候选人数据（同步脚本会自动更新此区域）
+// ════════════════════════════════
+// ════════ 候选人数据 ════════
+const SESSIONS = [
+  {
+    id:"s1", num:"场次一", time:"14:00–16:00", _date:"2026年6月5日",
+    interviewers:["余梦颖","欣怡"], room:"线上 A",
+    candidates:[
+      {name:"王添浩", school:"南京林业大学", major:"交通工程",
+       imp:["学习/进化","有知己好友","拥有充满乐趣和冒险的生活"],
+       unimp:["被爱","安稳度日，优哉游哉"], pName:"hao wang Results.pdf"},
+      {name:"邵钰涵", school:"—", major:"—",
+       imp:["家财万贯","家庭和美","拥有充满乐趣和冒险的生活"],
+       unimp:["安稳度日，优哉游哉"], pName:"yuhan shao Results.pdf"},
+      {name:"徐绍阳", school:"太原理工大学", major:"英语",
+       imp:["学习/进化","拥有充满乐趣和冒险的生活","了解世界"],
+       unimp:["安稳度日，优哉游哉"], pName:"绍阳 徐 Results.pdf"},
+      {name:"罗亚凡", school:"山西大学", major:"经济学",
+       imp:["学习/进化","家庭和美","实现职业目标"],
+       unimp:["家财万贯"], pName:"亚凡 罗 Results.pdf"},
+      {name:"陈奎鑫", school:"北京中医药大学", major:"大数据管理",
+       imp:["创新","有知己好友","家庭和美"],
+       unimp:["家财万贯"], pName:"crey chen Results.pdf"},
+      {name:"宋钰佳", school:"对外经济贸易大学", major:"国际经济贸易",
+       imp:["品行端正","实现职业目标","学习/进化"],
+       unimp:["家财万贯"], pName:"宋钰佳Results.pdf"},
+      {name:"谢铭涵", school:"吉林大学", major:"国际经济与贸易",
+       imp:["学习/进化","拥有充满乐趣和冒险的生活","实现职业目标"],
+       unimp:["安稳度日，优哉游哉"], pName:"xie minghan Results.pdf"}
+    ]
+  },
+  {
+    id:"s2", num:"场次二", time:"14:00–16:00", _date:"2026年6月5日",
+    interviewers:["多肉","左"], room:"线上 B",
+    candidates:[
+      {name:"史嘉冰", school:"中国矿业大学（北京）", major:"英语",
+       imp:["学习/进化","创新","拥有充满乐趣和冒险的生活"],
+       unimp:["家财万贯"], pName:"史嘉冰.pdf"},
+      {name:"宫照杭", school:"华中科技大学", major:"计算机科学与技术",
+       imp:["品行端正","学习/进化","被爱"],
+       unimp:["了解世界"], pName:"ZH G Results.pdf"},
+      {name:"王牧骥", school:"北京邮电大学", major:"法学",
+       imp:["品行端正","其他","学习/进化"],
+       unimp:["被爱","安稳度日，优哉游哉"], pName:"性格测试-王牧骥.pdf"},
+      {name:"李升美", school:"—", major:"—",
+       imp:["学习/进化","拥有充满乐趣和冒险的生活","品行端正"],
+       unimp:["安稳度日，优哉游哉"], pName:"LI SHENGMEI Results.pdf"},
+      {name:"付雅洁", school:"—", major:"—",
+       imp:["实现职业目标","学习/进化","品行端正"],
+       unimp:["安稳度日，优哉游哉","被爱","家庭和美"], pName:"FU Yajie Results.pdf"},
+      {name:"史佳林", school:"—", major:"—",
+       imp:["学习/进化","创新","实现职业目标"],
+       unimp:["家财万贯"], pName:"佳林 史 Results.pdf"}
+    ]
+  }
+];
+
+// ════════════════════════════════
+// 价值观颜色映射（每个选项固定颜色，两列通用）
+// ════════════════════════════════
+var VALUE_COLOR = {
+  '被爱':               {bg:'#fce7f3',color:'#9d174d',border:'#fbcfe8'},
+  '品行端正':           {bg:'#dcfce7',color:'#15803d',border:'#86efac'},
+  ' 品行端正':          {bg:'#dcfce7',color:'#15803d',border:'#86efac'},
+  '创新':               {bg:'#ede9fe',color:'#6d28d9',border:'#c4b5fd'},
+  '助人为乐':           {bg:'#fff7ed',color:'#c2410c',border:'#fed7aa'},
+  '学习/进化':           {bg:'#dbeafe',color:'#1e40af',border:'#93c5fd'},
+  '具有一定的影响力':   {bg:'#fef9c3',color:'#854d0e',border:'#fde047'},
+  '具有影响力':         {bg:'#fef9c3',color:'#854d0e',border:'#fde047'},
+  '实现职业目标':       {bg:'#d1fae5',color:'#065f46',border:'#6ee7b7'},
+  '安稳度日，优哉游哉': {bg:'#f1f5f9',color:'#475569',border:'#cbd5e1'},
+  '家财万贯':           {bg:'#fef3c7',color:'#92400e',border:'#fcd34d'},
+  '了解世界':           {bg:'#e0f2fe',color:'#0369a1',border:'#7dd3fc'},
+  '拥有充满乐趣和冒险的生活':{bg:'#fff1f2',color:'#9f1239',border:'#fda4af'},
+  '有知己好友':         {bg:'#f5f3ff',color:'#5b21b6',border:'#a78bfa'},
+  '家庭和美':           {bg:'#fdf2f8',color:'#9d174d',border:'#f0abfc'},
+  '其他':               {bg:'#f8fafc',color:'#64748b',border:'#e2e8f0'},
+};
+
+function vtag(val) {
+  var c = VALUE_COLOR[val.trim()] || {bg:'#f0f4f8',color:'#334155',border:'#cbd5e1'};
+  return '<span class="vtag" style="background:'+c.bg+';color:'+c.color+';border-color:'+c.border+'">'+val.trim()+'</span>';
+}
+
+// ════════════════════════════════
+// 状态变量
+// ════════════════════════════════
+var dirHandle  = null;
+var allFiles   = {};
+var fileMap    = JSON.parse(localStorage.getItem('fm')  || '{}');
+var editState  = JSON.parse(localStorage.getItem('es3') || '{}');
+var blobUrls   = {};
+var curSession = null;
+var pendingMapKey = '';
+
+// ════════════════════════════════
+// 文件夹选择 & 扫描
+// ════════════════════════════════
+function pickFolder() {
+  if (!window.showDirectoryPicker) {
+    alert('需要 Chrome 86+ 或 Edge。\n当前浏览器不支持文件夹访问。');
+    return;
+  }
+  window.showDirectoryPicker({mode:'read'}).then(function(dh) {
+    dirHandle = dh;
+    allFiles  = {};
+    blobUrls  = {};
+    return scanDir(dh);
+  }).then(function() {
+    var cnt = Object.keys(allFiles).length;
+    document.getElementById('dirBtn').classList.add('ok');
+    document.getElementById('dirTxt').textContent = '✓ ' + dirHandle.name;
+    document.getElementById('fileCount').textContent = cnt + ' 个文件';
+    autoMatch();
+    if (curSession) buildDetail(curSession);
+    toast('已扫描 ' + cnt + ' 个文件');
+  }).catch(function(e) {
+    if (e.name !== 'AbortError') toast('选择失败：' + e.message);
+  });
+}
+
+function scanDir(dh) {
+  var entries = [];
+  var reader  = dh.entries();
+  function readNext() {
+    return reader.next().then(function(r) {
+      if (r.done) return;
+      var name   = r.value[0];
+      var handle = r.value[1];
+      if (handle.kind === 'file') allFiles[name] = handle;
+      return readNext();
+    });
+  }
+  return readNext();
+}
+
+function autoMatch() {
+  var names  = Object.keys(allFiles);
+  var lowerM = {};
+  names.forEach(function(n){ lowerM[n.toLowerCase()] = n; });
+
+  SESSIONS.forEach(function(s) {
+    s.candidates.forEach(function(c) {
+      // 性格测试（精确 + 大小写不敏感）
+      if (!fileMap[c.name+'_p']) {
+        if (allFiles[c.pName]) {
+          fileMap[c.name+'_p'] = c.pName;
+        } else if (lowerM[c.pName.toLowerCase()]) {
+          fileMap[c.name+'_p'] = lowerM[c.pName.toLowerCase()];
+        }
+      }
+      // 简历（含姓名关键词）
+      if (!fileMap[c.name+'_r']) {
+        var m = names.find(function(n){
+          return n.includes(c.name) && (n.includes('简历')||n.toLowerCase().includes('resume')||n.toLowerCase().includes('cv'));
+        }) || names.find(function(n){
+          return n.includes(c.name) && n.toLowerCase().endsWith('.pdf');
+        });
+        if (m) fileMap[c.name+'_r'] = m;
+      }
+      // AI报告（含姓名 + AI/面试关键词）
+      if (!fileMap[c.name+'_ai']) {
+        var m2 = names.find(function(n){
+          return n.includes(c.name) && (n.includes('AI')||n.includes('面试')||n.toLowerCase().includes('interview'));
+        });
+        if (m2) fileMap[c.name+'_ai'] = m2;
+      }
+    });
+  });
+
+  localStorage.setItem('fm', JSON.stringify(fileMap));
+  var found = Object.keys(fileMap).length;
+  document.getElementById('fileCount').textContent =
+    Object.keys(allFiles).length + ' 个文件 · 已匹配 ' + found + ' 项';
+}
+
+// ════════════════════════════════
+// 首页渲染
+// ════════════════════════════════
+function renderHome() {
+  // 按日期分组
+  var byDate = {};
+  SESSIONS.forEach(function(s) {
+    var d = s._date || '未知日期';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(s);
+  });
+
+  var html = '';
+  Object.keys(byDate).forEach(function(d) {
+    html += '<div class="day-hd"><span class="day-tag">复试日</span><span class="day-lbl">' + d + '</span></div>';
+    html += '<div class="cards">';
+    byDate[d].forEach(function(s) {
+      var avs = s.candidates.slice(0,8).map(function(c){
+        return '<div class="ava" title="'+c.name+'">'+c.name[0]+'</div>';
+      }).join('');
+      if (s.candidates.length > 8) avs += '<div class="ava" style="background:#94a3b8;font-size:10px">+' + (s.candidates.length-8) + '</div>';
+      html += '<div class="card" onclick="openSession(\''+s.id+'\')">';
+      html += '<div class="card-top"></div>';
+      html += '<div class="card-body">';
+      html += '<span class="card-num">'+s.num+'</span>';
+      html += '<div class="card-time">&#9200; '+s.time+'</div>';
+      html += '<div class="card-meta">&#128101; 面试官：'+s.interviewers.join(' · ')+'<br>&#127968; '+s.room+'&nbsp;·&nbsp;&#128203; '+s.candidates.length+' 位候选人</div>';
+      html += '<div class="card-avs">'+avs+'</div>';
+      html += '</div><div class="card-arr">&#8250;</div></div>';
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('homeEl').innerHTML = html;
+}
+
+// ════════════════════════════════
+// 详情页
+// ════════════════════════════════
+function openSession(sid) {
+  curSession = null;
+  for (var i = 0; i < SESSIONS.length; i++) {
+    if (SESSIONS[i].id === sid) { curSession = SESSIONS[i]; break; }
+  }
+  if (!curSession) return;
+  buildDetail(curSession);
+  document.getElementById('v0').classList.remove('on');
+  document.getElementById('v1').classList.add('on');
+  window.scrollTo(0,0);
+}
+
+function goHome() {
+  document.getElementById('v1').classList.remove('on');
+  document.getElementById('v0').classList.add('on');
+  window.scrollTo(0,0);
+}
+
+function buildDetail(s) {
+  document.getElementById('dhd').innerHTML =
+    '<button class="back-btn" onclick="goHome()">&#8592; 返回</button>' +
+    '<div class="di"><div class="di-title">' + s.num + ' · ' + s.time + '</div>' +
+    '<div class="di-sub">面试官：' + s.interviewers.join(' · ') + ' · ' + (s._date||'') + ' · ' + s.room + '</div></div>' +
+    '<div class="di-cnt">' + s.candidates.length + ' 位候选人</div>';
+
+  document.getElementById('tbl').innerHTML = buildTable(s.candidates);
+
+  document.querySelectorAll('select[data-k]').forEach(function(el) {
+    var v = editState[el.dataset.k];
+    if (v) { el.value = v; colorSel(el); }
+  });
+
+  // 动态计算 thead 的 top，= 顶栏高度 + dhd 高度 + dhd margin-bottom(12px)
+  fixStickyHeader();
+}
+
+function fixStickyHeader() {
+  var bar = document.querySelector('.bar');
+  var dhd = document.getElementById('dhd');
+  if (!bar || !dhd) return;
+  var top = bar.getBoundingClientRect().height + dhd.getBoundingClientRect().height + 12;
+  document.querySelectorAll('thead th').forEach(function(th) {
+    th.style.top = top + 'px';
+  });
+}
+window.addEventListener('resize', fixStickyHeader);
+
+// ════════════════════════════════
+// 表格
+// ════════════════════════════════
+var COLS = ['#','人选姓名','简历','院校/专业','初试星级','初试报告','最重要价值观','最不重要价值观','性格测试','复试结果','复试评价','复试提问'];
+var WIDTHS = [32,120,130,155,90,130,205,205,130,105,165,165];
+
+function buildTable(cands) {
+  var h = '<table><thead><tr>';
+  COLS.forEach(function(l,i){ h += '<th style="width:'+WIDTHS[i]+'px;min-width:'+WIDTHS[i]+'px">'+l+'</th>'; });
+  h += '</tr></thead><tbody>';
+
+  cands.forEach(function(c,i) {
+    var rk  = c.name+'_r';
+    var aik = c.name+'_ai';
+    var pk  = c.name+'_p';
+    var rf  = fileMap[rk];
+    var aif = fileMap[aik];
+    var pf  = fileMap[pk] || c.pName; // 性格测试优先用 pName
+
+    var rv = editState[c.name+'_result'] || '';
+    var rc = rv==='通过'?'pass':rv==='淘汰'?'fail':rv==='待定'?'hold':rv==='放弃'?'give':'';
+
+    h += '<tr>';
+    h += '<td><div class="cell" style="justify-content:center"><span class="ridx">'+(i+1)+'</span></div></td>';
+    h += '<td class="nc"><div class="cell">'+c.name+'</div></td>';
+    h += '<td><div class="cell">'+fbtn('简历',rk,rf)+'</div></td>';
+    h += '<td><div class="cell"><span style="font-size:12px;line-height:1.5;color:#475569">';
+    if (c.school !== '—') h += c.school+'<br><span style="font-size:11px;color:#94a3b8">'+c.major+'</span>';
+    else h += '<span style="color:#d1d5db">—</span>';
+    h += '</span></div></td>';
+
+    var sv = editState[c.name+'_stars'] || '';
+    h += '<td><select class="rs" data-k="'+c.name+'_stars" onchange="editState[this.dataset.k]=this.value;saveAll()">';
+    h += '<option value="">—</option>';
+    ['5★','4★','3★'].forEach(function(v){ h += '<option value="'+v+'"'+(sv===v?' selected':'')+'>'+v+'</option>'; });
+    h += '</select></td>';
+
+    h += '<td><div class="cell">'+fbtn('初试报告',aik,aif)+'</div></td>';
+
+    h += '<td><div class="cell">';
+    c.imp.slice(0,2).forEach(function(v){ h += vtag(v); });
+    if (c.imp.length>2) h += '<span class="tm">+' + (c.imp.length-2) + '</span>';
+    h += '</div></td>';
+
+    h += '<td><div class="cell">';
+    c.unimp.slice(0,2).forEach(function(v){ h += vtag(v); });
+    if (c.unimp.length>2) h += '<span class="tm">+' + (c.unimp.length-2) + '</span>';
+    h += '</div></td>';
+
+    h += '<td><div class="cell">'+fbtn('性格报告',pk,pf)+'</div></td>';
+
+    h += '<td><select class="rs '+rc+'" data-k="'+c.name+'_result" onchange="colorSel(this);editState[this.dataset.k]=this.value;saveAll()">';
+    h += '<option value="">—</option>';
+    h += '<option value="通过"'+(rv==='通过'?' selected':'')+'>通过</option>';
+    h += '<option value="待定"'+(rv==='待定'?' selected':'')+'>待定</option>';
+    h += '<option value="淘汰"'+(rv==='淘汰'?' selected':'')+'>淘汰</option>';
+    h += '<option value="放弃"'+(rv==='放弃'?' selected':'')+'>放弃</option>';
+    h += '</select></td>';
+
+    var cm = editState[c.name+'_comment'] || '';
+    var qt = editState[c.name+'_question'] || '';
+    h += '<td><div contenteditable="true" spellcheck="false" class="ec" data-k="'+c.name+'_comment" data-ph="填写评价…">'+cm+'</div></td>';
+    h += '<td><div contenteditable="true" spellcheck="false" class="ec" data-k="'+c.name+'_question" data-ph="填写提问…">'+qt+'</div></td>';
+    h += '</tr>';
+  });
+
+  return h + '</tbody></table>';
+}
+
+// 文件按钮（纯字符串，无 emoji onclick）
+function fbtn(label, mapKey, filename) {
+  var icons = {简历:'[简历]', 初试报告:'[AI]', 性格报告:'[性格]'};
+  var ico = icons[label] || '[文件]';
+
+  if (!dirHandle && !filename) {
+    return '<span class="fb fb-none" data-act="folder" title="请先选择文件夹">' +
+           '<span class="dot dot-none"></span><span class="fn">选择文件夹</span></span>';
+  }
+  if (filename) {
+    var safe = filename.replace(/"/g,'&quot;');
+    var short = filename.length > 15 ? filename.slice(0,14)+'…' : filename;
+    return '<span class="fb fb-ok" data-act="open" data-mk="'+mapKey+'" data-fn="'+safe+'" data-lbl="'+label+'" title="点击预览：'+safe+'">' +
+           '<span class="dot dot-ok"></span><span class="fn">'+short+'</span></span>';
+  }
+  return '<span class="fb fb-none" data-act="pick" data-mk="'+mapKey+'" data-lbl="'+label+'" title="点击选择文件">' +
+         '<span class="dot dot-none"></span><span class="fn">点击选择文件</span></span>';
+}
+
+// ════════════════════════════════
+// 事件委托（统一处理所有点击）
+// ════════════════════════════════
+document.addEventListener('click', function(e) {
+  var el = e.target.closest('[data-act]');
+  if (!el) return;
+  var act = el.dataset.act;
+  if (act === 'folder') { promptFolder(); }
+  else if (act === 'open') { openFile(el.dataset.mk, el.dataset.fn, el.dataset.lbl); }
+  else if (act === 'pick') { pickFile(el.dataset.mk, el.dataset.lbl); }
+  else if (act === 'confirm') { confirmFile(el.dataset.mk, el.dataset.fn); }
+  else if (act === 'pickalt') { pickAlt(el.dataset.mk, el.dataset.lbl); }
+});
+
+function promptFolder() {
+  if (confirm('需要先选择文件夹。\n\n点确定后选择包含简历/报告的文件夹（通常是 Downloads）。')) pickFolder();
+}
+
+// ════════════════════════════════
+// 文件打开
+// ════════════════════════════════
+function openFile(mapKey, filename, label) {
+  document.getElementById('mi').textContent = label === '简历' ? '📄' : label === '初试报告' ? '🤖' : '🧠';
+  document.getElementById('mn').textContent = filename;
+  document.getElementById('mt').textContent = label;
+  document.getElementById('mb').innerHTML = '<div class="nofile"><div class="nfi">⏳</div><h3>加载中…</h3></div>';
+  document.getElementById('ov').classList.add('on');
+
+  getBlobUrl(filename).then(function(url) {
+    var mb = document.getElementById('mb');
+    if (!url) {
+      mb.innerHTML = '<div class="nofile">' +
+        '<div class="nfi">' + (label==='简历'?'📄':label==='初试报告'?'🤖':'🧠') + '</div>' +
+        '<h3>文件未找到</h3><p>' + filename + '</p>' +
+        '<div class="hint">当前文件夹：' + (dirHandle?dirHandle.name:'未选择') + '<br>文件不存在或名称不符<br><br>点击下方按钮手动选择</div>' +
+        '<button class="pick2" data-act="pickalt" data-mk="'+mapKey+'" data-lbl="'+label+'">手动选择文件</button>' +
+        '</div>';
+      return;
+    }
+    var ext = filename.split('.').pop().toLowerCase();
+    if (['jpg','jpeg','png','gif','webp'].indexOf(ext) >= 0) {
+      mb.innerHTML = '<img src="'+url+'">';
+    } else {
+      mb.innerHTML = '<iframe src="'+url+'"></iframe>';
+    }
+  });
+}
+
+function getBlobUrl(filename) {
+  if (!filename) return Promise.resolve(null);
+  if (blobUrls[filename]) return Promise.resolve(blobUrls[filename]);
+  var handle = allFiles[filename];
+  if (!handle) return Promise.resolve(null);
+  return handle.getFile().then(function(file) {
+    var url = URL.createObjectURL(file);
+    blobUrls[filename] = url;
+    return url;
+  }).catch(function() { return null; });
+}
+
+function pickAlt(mapKey, label) {
+  if (!window.showOpenFilePicker) { toast('浏览器不支持文件选择'); return; }
+  window.showOpenFilePicker({
+    types:[{description:'PDF/图片',accept:{'application/pdf':['.pdf'],'image/*':['.jpg','.jpeg','.png']}}]
+  }).then(function(handles) {
+    return handles[0].getFile().then(function(file) {
+      var url = URL.createObjectURL(file);
+      blobUrls[file.name] = url;
+      allFiles[file.name]  = handles[0];
+      fileMap[mapKey] = file.name;
+      localStorage.setItem('fm', JSON.stringify(fileMap));
+      document.getElementById('mn').textContent = file.name;
+      var ext = file.name.split('.').pop().toLowerCase();
+      var mb = document.getElementById('mb');
+      if (['jpg','jpeg','png'].indexOf(ext)>=0) mb.innerHTML = '<img src="'+url+'">';
+      else mb.innerHTML = '<iframe src="'+url+'"></iframe>';
+      toast('已加载：' + file.name);
+      if (curSession) buildDetail(curSession);
+    });
+  }).catch(function(e){ if (e.name!=='AbortError') toast('打开失败：'+e.message); });
+}
+
+function pickFile(mapKey, label) {
+  if (!dirHandle) { promptFolder(); return; }
+  var names = Object.keys(allFiles).filter(function(n){
+    var ext = n.split('.').pop().toLowerCase();
+    return ['pdf','jpg','jpeg','png'].indexOf(ext)>=0;
+  }).sort();
+
+  pendingMapKey = mapKey;
+  document.getElementById('flTitle').textContent = '选择文件：' + label;
+  var html = names.length === 0
+    ? '<div class="fl-empty">文件夹中无 PDF/图片</div>'
+    : names.map(function(n){
+        var isPdf = n.toLowerCase().endsWith('.pdf');
+        return '<div class="fl-item" data-act="confirm" data-mk="'+mapKey+'" data-fn="'+n.replace(/"/g,'&quot;')+'">' +
+               '<span class="fl-ico">'+(isPdf?'📄':'🖼️')+'</span>' +
+               '<span class="fl-name" title="'+n+'">'+n+'</span></div>';
+      }).join('');
+
+  document.getElementById('flBody').innerHTML = html;
+  document.getElementById('flov').classList.add('on');
+}
+
+function confirmFile(mapKey, filename) {
+  fileMap[mapKey] = filename;
+  localStorage.setItem('fm', JSON.stringify(fileMap));
+  closeFl();
+  if (curSession) buildDetail(curSession);
+  toast('已选择：' + filename);
+}
+
+function closeModal() { document.getElementById('ov').classList.remove('on'); }
+function closeFl()    { document.getElementById('flov').classList.remove('on'); }
+
+document.addEventListener('keydown', function(e){
+  if (e.key==='Escape'){ closeModal(); closeFl(); }
+});
+
+// ════════════════════════════════
+// 同步提示
+// ════════════════════════════════
+function triggerSync() {
+  alert('同步方法：\n\n双击运行「同步复试数据.py」\n\n脚本会自动从飞书读取最新复试安排，\n更新完成后会自动打开此页面。\n\n更新后刷新页面（F5）即可看到最新数据。');
+}
+
+// ════════════════════════════════
+// 编辑保存
+// ════════════════════════════════
+function colorSel(sel) {
+  sel.className = 'rs';
+  var m = {通过:'pass',淘汰:'fail',待定:'hold',放弃:'give'};
+  if (m[sel.value]) sel.classList.add(m[sel.value]);
+  var row = sel.closest('tr');
+  if (row) row.style.background = sel.value==='通过'?'#f0fdf4':sel.value==='淘汰'?'#fff5f5':'';
+}
+function saveAll() {
+  localStorage.setItem('es3', JSON.stringify(editState));
+}
+document.addEventListener('blur', function(e){
+  var el = e.target;
+  if (el.classList && el.classList.contains('ec') && el.dataset.k) {
+    editState[el.dataset.k] = (el.innerText||'').trim();
+    saveAll();
+  }
+}, true);
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.style.display='none'; }, 2500);
+}
+
+// ════════════════════════════════
+// 启动
+// ════════════════════════════════
+renderHome();
+</script>
+</body>
+</html>
