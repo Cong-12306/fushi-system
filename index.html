@@ -49,9 +49,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 /* 表格 */
 .tw{overflow-x:auto;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,.08)}
 table{width:max-content;min-width:100%;border-collapse:collapse;background:#fff}
-/* thead top 由 JS 动态计算（fixStickyHeader）*/
-thead th{background:#f8fafc;font-size:11px;font-weight:700;color:#64748b;padding:8px 12px;border-bottom:2px solid #e2e8f0;border-right:1px solid #f1f5f9;white-space:nowrap;text-align:left;position:sticky;top:105px;z-index:10}
-thead th:nth-child(2){position:sticky;left:0;z-index:20;background:#f8fafc;border-right:2px solid #e2e8f0}
+/* thead 不做垂直 sticky（overflow-x:auto 容器会破坏垂直 sticky 参照系）*/
+thead th{background:#f8fafc;font-size:11px;font-weight:700;color:#64748b;padding:8px 12px;border-bottom:2px solid #e2e8f0;border-right:1px solid #f1f5f9;white-space:nowrap;text-align:left}
+/* 只保留水平方向的 sticky（固定姓名列）*/
+thead th:nth-child(2){position:sticky;left:0;z-index:5;background:#f8fafc;border-right:2px solid #e2e8f0}
 tbody td{padding:0;border-bottom:1px solid #f1f5f9;border-right:1px solid #f8fafc;vertical-align:middle}
 tbody tr:hover td{background:#fafbff}
 .cell{padding:7px 12px;min-height:40px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
@@ -433,23 +434,7 @@ function buildDetail(s) {
     if (v) { el.value = v; colorSel(el); }
   });
 
-  // 用 requestAnimationFrame 确保 DOM 渲染完成后再测量高度，避免遮住第一行
-  requestAnimationFrame(function() {
-    requestAnimationFrame(fixStickyHeader);
-  });
 }
-
-function fixStickyHeader() {
-  var bar = document.querySelector('.bar');
-  var dhd = document.getElementById('dhd');
-  if (!bar || !dhd) return;
-  // bar 高度 + dhd 高度 + dhd margin-bottom(12px) + 安全边距(4px)
-  var top = bar.getBoundingClientRect().height + dhd.getBoundingClientRect().height + 16;
-  document.querySelectorAll('thead th').forEach(function(th) {
-    th.style.top = top + 'px';
-  });
-}
-window.addEventListener('resize', function(){ requestAnimationFrame(fixStickyHeader); });
 
 // ════════════════════════════════
 // 表格
